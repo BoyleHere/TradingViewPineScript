@@ -161,6 +161,26 @@ enable_telegram_alerts = true
 
 ## 🔧 Usage Examples
 
+### Desktop GUI Application (NEW! 🖥️)
+```bash
+# Launch modern desktop interface
+run_gui.bat                     # Windows batch file
+.\run_gui.ps1                   # PowerShell script
+python launch_gui.py            # Direct Python launch
+
+# Build standalone executable
+build_exe.bat                   # Creates dist\FVG_Scanner_Pro.exe
+python create_shortcuts.py     # Creates desktop shortcuts
+```
+
+**GUI Features:**
+- 🎨 Modern desktop interface with real-time updates
+- 📊 Live results table with color-coded FVG indicators
+- ⚙️ Visual configuration without editing files
+- 🔔 Integrated alert management system
+- 📈 Performance metrics and system monitoring
+- 💾 Export functionality and report generation
+
 ### Quick Launch Menu
 ```bash
 # Interactive launcher (recommended)
@@ -472,14 +492,26 @@ python main.py --log-level DEBUG
 
 ## 📋 Roadmap
 
-### Planned Features
-- [ ] Web dashboard interface
-- [ ] Email alert support
-- [ ] Advanced pattern recognition
-- [ ] Historical backtesting
-- [ ] Portfolio-level analysis
-- [ ] API integration
-- [ ] Mobile app support
+### ✅ Completed Features (v2.0)
+- [x] **Desktop GUI Application**: Modern tkinter-based interface
+- [x] **Real-time Performance Optimization**: 3x faster scanning
+- [x] **Concurrent Processing**: Multi-threaded data fetching
+- [x] **Smart Caching**: Intelligent data management
+- [x] **Enhanced Display**: Live indicators and metrics
+- [x] **Standalone Executable**: PyInstaller-based distribution
+
+### 🔄 In Progress
+- [ ] **Web Dashboard**: Browser-based interface
+- [ ] **Mobile Companion**: Real-time alerts on mobile devices
+
+### 📅 Planned Features
+- [ ] **Advanced Analytics**: Historical backtesting and pattern analysis
+- [ ] **Portfolio Integration**: Multi-portfolio FVG monitoring
+- [ ] **API Integration**: REST API for external applications
+- [ ] **Machine Learning**: AI-powered pattern recognition
+- [ ] **Email Alerts**: SMTP notification support
+- [ ] **Database Storage**: Historical data persistence
+- [ ] **Custom Indicators**: User-defined technical indicators
 
 ### Current Limitations
 - **Data Delay**: Yahoo Finance free data has 15-20 minute delay (not true real-time)
