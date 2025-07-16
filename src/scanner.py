@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import pandas as pd
 from colorama import Fore, Style, init
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from .data_provider import DataProvider
 from .fvg_detector import FVGDetector
@@ -15,12 +17,15 @@ from .table_display import TableDisplay
 init()
 
 class FVGScanner:
-    """Main scanner class that orchestrates the scanning process"""
+    """Enhanced scanner with real-time optimizations"""
     
     def __init__(self, symbols: List[str], config: Dict[str, Any]):
         self.symbols = symbols
         self.config = config
         self.data_provider = DataProvider(symbols)
+        self.data_provider.cache_timeout = config.get('cache_timeout', 30)
+        self.data_provider.fast_update_mode = config.get('enable_fast_updates', True)
+        
         self.fvg_detector = FVGDetector(threshold=config.get('fvg_threshold', 0.001))
         self.alert_manager = AlertManager(config)
         self.table_display = TableDisplay(config)
@@ -28,6 +33,14 @@ class FVGScanner:
         
         self.scan_results = {}
         self.is_running = False
+        self.scan_count = 0
+        self.last_scan_time = None
+        self.performance_metrics = {
+            'avg_scan_time': 0,
+            'successful_scans': 0,
+            'failed_scans': 0,
+            'alerts_sent': 0
+        }
         self.scan_thread = None
         self.scan_count = 0
         

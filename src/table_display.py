@@ -3,83 +3,126 @@ from datetime import datetime
 from typing import Dict, Any, List
 from colorama import Fore, Style, init
 import os
+import time
 
 # Initialize colorama for colored output
 init()
 
 class TableDisplay:
-    """Handles formatting and display of scan results in table format"""
+    """Enhanced table display with real-time indicators"""
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.display_enabled = config.get('display_table', True)
         self.max_table_width = 120
+        self.last_display_time = time.time()
+        self.refresh_rate = config.get('display_refresh_rate', 1.0)  # Max 1 update per second
         
     def display_results(self, scan_results: Dict[str, Any]):
-        """Display scan results in a formatted table"""
+        """Display scan results with real-time throttling"""
         if not self.display_enabled:
             return
         
-        # Clear screen (Windows)
+        # Throttle display updates to avoid flickering
+        current_time = time.time()
+        if current_time - self.last_display_time < self.refresh_rate:
+            return
+        
+        self.last_display_time = current_time
+        
+        # Clear screen (Windows/Unix compatible)
         os.system('cls' if os.name == 'nt' else 'clear')
         
-        # Display header
-        self._display_header(scan_results)
+        # Display real-time header
+        self._display_realtime_header(scan_results)
         
         # Display main results table
         self._display_main_table(scan_results)
         
-        # Display statistics
-        self._display_statistics(scan_results)
+        # Display enhanced statistics
+        self._display_enhanced_statistics(scan_results)
         
-    def _display_header(self, scan_results: Dict[str, Any]):
-        """Display header information"""
+    def _display_realtime_header(self, scan_results: Dict[str, Any]):
+        """Display enhanced header with real-time indicators"""
         timestamp = scan_results['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
         scan_number = scan_results.get('scan_number', 'N/A')
         duration = scan_results.get('scan_duration', 0)
         
+        # Real-time indicators
+        data_freshness = self._get_data_freshness(scan_results)
+        update_frequency = scan_results.get('update_frequency', 'N/A')
+        
         print(f"{Fore.CYAN}{'='*self.max_table_width}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}📊 FVG SCANNER RESULTS #{scan_number}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}📊 REAL-TIME FVG SCANNER #{scan_number}{Style.RESET_ALL}")
         print(f"{Fore.CYAN}{'='*self.max_table_width}{Style.RESET_ALL}")
         print(f"🕐 Scan Time: {timestamp}")
         print(f"⏱️  Duration: {duration:.2f}s")
         print(f"📈 Symbols: {len(scan_results['symbols'])}")
+        print(f"🔄 Update Freq: {update_frequency}")
+        print(f"📡 Data Freshness: {data_freshness}")
+        print(f"🚀 Status: {Fore.GREEN}LIVE SCANNING{Style.RESET_ALL}")
         print("")
     
     def _display_main_table(self, scan_results: Dict[str, Any]):
-        """Display main results table"""
+        """Display enhanced main results table with real-time indicators"""
         if not scan_results['symbols']:
             print(f"{Fore.YELLOW}No symbol data available{Style.RESET_ALL}")
             return
         
-        # Create table data
+        # Create table data with real-time indicators
         table_data = []
-        headers = ['Symbol', 'Price', 'FVG 5m', 'FVG 15m', 'iFVG 5m', 'iFVG 15m', 'Active']
+        headers = ['Symbol', 'Price', 'Change', 'FVG 5m', 'FVG 15m', 'iFVG 5m', 'iFVG 15m', 'Active', 'Fresh']
         
         for symbol, data in scan_results['symbols'].items():
             row = [symbol]
             
-            # Get current price (from any available timeframe)
+            # Get current price and change
             current_price = None
+            price_change = None
             for tf_data in data['timeframes'].values():
                 if tf_data.get('current_price'):
                     current_price = tf_data['current_price']
+                    price_change = tf_data.get('price_change', 0)
                     break
             
-            row.append(f"${current_price:.2f}" if current_price else "N/A")
+            # Price with color coding
+            if current_price:
+                price_str = f"${current_price:.2f}"
+                row.append(price_str)
+                
+                # Price change indicator
+                if price_change > 0:
+                    change_str = f"{Fore.GREEN}+{price_change:.2f}%{Style.RESET_ALL}"
+                elif price_change < 0:
+                    change_str = f"{Fore.RED}{price_change:.2f}%{Style.RESET_ALL}"
+                else:
+                    change_str = f"{Fore.LIGHTBLACK_EX}0.00%{Style.RESET_ALL}"
+                row.append(change_str)
+            else:
+                row.append("N/A")
+                row.append("N/A")
             
-            # Process timeframes
+            # Process timeframes with enhanced indicators
             for timeframe in ['5m', '15m']:
                 if timeframe in data['timeframes']:
                     analysis = data['timeframes'][timeframe]
                     
-                    # FVG status
+                    # FVG status with strength indicator
                     if analysis['recent_fvg']:
                         fvg_direction = analysis['recent_fvg']['direction']
                         fvg_percentage = analysis['recent_fvg']['gap_percentage']
-                        fvg_status = f"{fvg_direction[:4]} {fvg_percentage:.1f}%"
                         
-                        # Color coding
+                        # Strength indicator
+                        if fvg_percentage > 0.5:
+                            strength = "🔥"
+                        elif fvg_percentage > 0.3:
+                            strength = "⚡"
+                        else:
+                            strength = "💫"
+                        
+                        fvg_status = f"{strength} {fvg_direction[:4]} {fvg_percentage:.1f}%"
+                        
+                        # Color coding with intensity
                         if fvg_direction == 'Bullish':
                             fvg_status = f"{Fore.GREEN}{fvg_status}{Style.RESET_ALL}"
                         else:
@@ -100,7 +143,7 @@ class TableDisplay:
                     if analysis['recent_ifvg']:
                         ifvg_direction = analysis['recent_ifvg']['direction']
                         ifvg_percentage = analysis['recent_ifvg']['fill_percentage']
-                        ifvg_status = f"{ifvg_direction[:4]} {ifvg_percentage:.1f}%"
+                        ifvg_status = f"🔄 {ifvg_direction[:4]} {ifvg_percentage:.1f}%"
                         
                         # Color coding
                         if ifvg_direction == 'Bullish':
@@ -121,6 +164,19 @@ class TableDisplay:
             )
             row.append(str(total_active))
             
+            # Data freshness indicator
+            freshness = data.get('data_freshness', 'Unknown')
+            if 'ago' in freshness:
+                if 's ago' in freshness:
+                    fresh_indicator = f"{Fore.GREEN}🟢{Style.RESET_ALL}"
+                elif 'm ago' in freshness and int(freshness.split('m')[0]) < 5:
+                    fresh_indicator = f"{Fore.YELLOW}🟡{Style.RESET_ALL}"
+                else:
+                    fresh_indicator = f"{Fore.RED}🔴{Style.RESET_ALL}"
+            else:
+                fresh_indicator = f"{Fore.LIGHTBLACK_EX}❓{Style.RESET_ALL}"
+            
+            row.append(fresh_indicator)
             table_data.append(row)
         
         # Display table
@@ -297,3 +353,69 @@ ACTIVE SIGNALS:
                 report += signal_text + "\n"
         
         return report
+    
+    def _get_data_freshness(self, scan_results: Dict[str, Any]) -> str:
+        """Calculate overall data freshness"""
+        if not scan_results['symbols']:
+            return "No data"
+        
+        freshness_values = []
+        for symbol_data in scan_results['symbols'].values():
+            freshness = symbol_data.get('data_freshness', 'Unknown')
+            if 'ago' in freshness:
+                if 's ago' in freshness:
+                    freshness_values.append(1)  # Fresh
+                elif 'm ago' in freshness:
+                    freshness_values.append(2)  # Moderate
+                else:
+                    freshness_values.append(3)  # Stale
+            else:
+                freshness_values.append(4)  # Unknown
+        
+        if not freshness_values:
+            return "Unknown"
+        
+        avg_freshness = sum(freshness_values) / len(freshness_values)
+        if avg_freshness <= 1.5:
+            return f"{Fore.GREEN}Fresh{Style.RESET_ALL}"
+        elif avg_freshness <= 2.5:
+            return f"{Fore.YELLOW}Moderate{Style.RESET_ALL}"
+        else:
+            return f"{Fore.RED}Stale{Style.RESET_ALL}"
+    
+    def _display_enhanced_statistics(self, scan_results: Dict[str, Any]):
+        """Display enhanced scan statistics with real-time metrics"""
+        stats = self._calculate_statistics(scan_results)
+        
+        print(f"\n{Fore.YELLOW}📊 REAL-TIME STATISTICS{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}{'-'*40}{Style.RESET_ALL}")
+        
+        print(f"✅ Successful Scans: {stats['successful_scans']}/{stats['total_symbols']}")
+        print(f"🔥 Symbols with FVG: {stats['symbols_with_fvg']}")
+        print(f"🔄 Symbols with iFVG: {stats['symbols_with_ifvg']}")
+        print(f"📈 Total Active FVGs: {stats['total_active_fvgs']}")
+        
+        # Real-time performance metrics
+        avg_scan_time = scan_results.get('avg_scan_time', 0)
+        scan_frequency = scan_results.get('scan_frequency', 'Unknown')
+        
+        if avg_scan_time > 0:
+            print(f"⚡ Avg Scan Time: {avg_scan_time:.2f}s")
+        if scan_frequency != 'Unknown':
+            print(f"🔄 Scan Frequency: {scan_frequency}")
+        
+        if stats['failed_scans'] > 0:
+            print(f"{Fore.RED}❌ Failed Scans: {stats['failed_scans']}{Style.RESET_ALL}")
+        
+        # Real-time status
+        next_scan_in = scan_results.get('next_scan_in', 0)
+        if next_scan_in > 0:
+            print(f"\n{Fore.GREEN}🚀 Next scan in {next_scan_in:.0f}s...{Style.RESET_ALL}")
+        else:
+            print(f"\n{Fore.GREEN}🚀 Live scanning active...{Style.RESET_ALL}")
+        
+        print(f"{Fore.CYAN}{'='*self.max_table_width}{Style.RESET_ALL}")
+        
+    def _display_statistics(self, scan_results: Dict[str, Any]):
+        """Display scan statistics - Legacy method"""
+        return self._display_enhanced_statistics(scan_results)
